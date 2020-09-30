@@ -13,6 +13,7 @@ library(lubridate)
 library(readr)
 library(ggplot2)
 library(DT)
+library(forcats)
 ```
 
 ## Taylor Swift and Beyoncé
@@ -87,3 +88,51 @@ so have been removed.
 
 Taylor is 'Red' and Beyoncé is 'Lemon(ade)' for obvious reasons ;)
 
+## Charts
+
+
+```{r plotbeychart}
+
+# fix formats
+charts$chart_position = as.numeric(charts$chart_position)
+charts$released = as.Date(charts$released, format('%B %d, %Y'))
+# create a reverse chart position to make barplots look better
+max.chart = max(charts$chart_position, na.rm = TRUE)
+charts = charts %>% mutate(rev_chart_position = chart_position - max.chart)
+
+ggplot(charts %>% filter(artist == 'Beyoncé'), aes( x = fct_reorder(title,released), y = rev_chart_position)) +
+  labs(x = '',
+       y = '') +
+  geom_col(fill = '#fff44f') +
+  scale_y_continuous(trans = 'reverse') +
+  geom_text(aes(label=chart_position), colour = 'black', nudge_y = -3.8, size = 2.7) +
+  scale_colour_manual(values = c('black','white')) +
+  coord_flip() +
+  facet_wrap(. ~ chart) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.length.x = unit(0, 'mm'),
+        legend.position = 'NA',
+        panel.grid = element_blank())
+
+```
+
+```{r plottschart}
+
+
+ggplot(charts %>% filter(artist == 'Taylor Swift'), aes( x = fct_reorder(title,released), y = rev_chart_position)) +
+  labs(x = '',
+       y = '') +
+  geom_col(fill = '#af1946') +
+  scale_y_continuous(trans = 'reverse') +
+  geom_text(aes(label=chart_position, y = ifelse(rev_chart_position > -10, rev_chart_position - 8, rev_chart_position), colour = ifelse(rev_chart_position > -10,'black','white') ), nudge_y = -3.8, size = 2.7) +
+  scale_colour_manual(values = c('black','white')) +
+  coord_flip() +
+  facet_wrap(. ~ chart) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.length.x = unit(0, 'mm'),
+        legend.position = 'NA',
+        panel.grid = element_blank())
+
+```
