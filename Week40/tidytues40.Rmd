@@ -1,0 +1,89 @@
+---
+title: "Tidy Tuesday - Week 40"
+date: "29/09/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+library(tidyr)
+library(dplyr)
+library(lubridate)
+library(readr)
+library(ggplot2)
+library(DT)
+```
+
+## Taylor Swift and Beyoncé
+
+This document is to explore data visualisation of Week 40 of the Tidy Tuesday DataViz challenges.
+
+```{r data}
+
+#beyonce_lyrics <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/beyonce_lyrics.csv')
+#taylor_swift_lyrics <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/taylor_swift_lyrics.csv')
+sales <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/sales.csv')
+charts <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/charts.csv')
+
+
+
+```
+
+## Sales
+
+Let's first take a look at the sales of their albums. There aren't that many so
+the data will be a bit sparse. The TS data specifies world sales as 'WW' so 
+renaming as 'World' to be comparable.
+
+```{r sales}
+
+# reformat dates
+sales$released = as.Date(sales$released, format('%B %d, %Y'))
+# and add month and year as separate cols
+sales = sales %>% mutate(rel_month = format(released, "%b"))
+sales = sales %>% mutate(rel_year = format(released, '%Y'))
+
+# remove NA
+sales = sales %>% filter(!is.na(sales))
+
+# replace 'WW' with 'World'
+sales[sales$country == 'WW', 'country'] <- 'World'
+
+DT::datatable(sales)
+```
+
+It's a bit odd, but the 'Taylor Swift' album has no 'World' sales...
+
+```{r plot1}
+
+sales$rel_month = factor(sales$rel_month, levels = c( 'Dec', 'Nov', 'Oct', 'Sep', 'Aug', 'Jul', 'Jun', 'May', 'Apr', 'Mar', 'Feb','Jan'), ordered = TRUE)
+
+sales_by_month = sales %>% 
+  filter(country %in% c('UK', 'US', 'World')) %>%
+  group_by(artist, rel_month, country) %>% 
+  summarise(month_sales = sum(sales)/1000000)
+
+sales_by_month = sales_by_month %>% complete(artist, country, rel_month)
+
+ggplot(sales_by_month, aes(x = rel_month, y = month_sales, fill = artist)) +
+  labs(x = 'Month of release',
+       y = 'Total Sales (millions)') +
+  geom_col(position = position_dodge(0.9), colour = 'darkgrey') +
+  geom_text(aes(label = sprintf("%.1fm",round(month_sales, 1)), y = month_sales + 3.9), position = position_dodge(0.9), size = 3) +
+  scale_x_discrete(limits = levels(sales$rel_month)) +
+  scale_fill_manual(values = c('#fff44f','#af1946')) +
+  ylim(c(0,30)) +
+  coord_flip() + 
+  facet_wrap(. ~ country) +
+  theme_classic()
+  
+         
+
+```
+
+Sales outside of UK and US are very low and can't be seen on the full scale
+so have been removed.
+
+Taylor is 'Red' and Beyoncé is 'Lemon(ade)' for obvious reasons ;)
+
